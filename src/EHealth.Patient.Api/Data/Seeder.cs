@@ -13,11 +13,11 @@ public static class Seeder
         db.Patients.Add(new Patient
         {
             Id = Pat1,
-            FirstName = "Maria",
-            LastName = "Shevchenko",
+            FirstName = "Emily",
+            LastName = "Carter",
             DateOfBirth = new DateOnly(1985, 3, 15),
             Gender = Gender.Female,
-            Email = "maria.shevchenko@example.com"
+            Email = "emily.carter@example.com"
         });
 
         db.AllergyRecords.Add(new AllergyRecord
