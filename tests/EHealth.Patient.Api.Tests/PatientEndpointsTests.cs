@@ -24,7 +24,7 @@ public class PatientEndpointsTests : IDisposable
         var patients = await response.Content.ReadFromJsonAsync<List<Patient>>();
         Assert.NotNull(patients);
         Assert.Single(patients);
-        Assert.Equal("Shevchenko", patients[0].LastName);
+        Assert.Equal("Carter", patients[0].LastName);
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class PatientEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var patient = await response.Content.ReadFromJsonAsync<Patient>();
-        Assert.Equal("Maria", patient!.FirstName);
+        Assert.Equal("Emily", patient!.FirstName);
     }
 
     [Fact]
