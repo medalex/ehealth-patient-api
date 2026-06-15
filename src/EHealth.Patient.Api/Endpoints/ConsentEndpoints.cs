@@ -15,6 +15,20 @@ public static class ConsentEndpoints
                 .Where(c => c.PatientId == patientId)
                 .ToListAsync());
 
+        // Проверка наличия активного consent'а: 200 OK / 403 Forbidden
+        group.MapGet("/check", async (Guid patientId, string organizationId, AppDbContext db) =>
+        {
+            var now = DateTime.UtcNow;
+            var granted = await db.DataConsents.AnyAsync(c =>
+                c.PatientId == patientId &&
+                c.OrganizationId == organizationId &&
+                (c.ExpiresAt == null || c.ExpiresAt > now));
+            return granted
+                ? Results.Ok(new { granted = true })
+                : Results.Json(new { granted = false, error = $"No active consent from patient {patientId} for organization {organizationId}" },
+                    statusCode: 403);
+        });
+
         group.MapPost("/", async (DataConsent consent, AppDbContext db) =>
         {
             consent.Id = Guid.NewGuid();

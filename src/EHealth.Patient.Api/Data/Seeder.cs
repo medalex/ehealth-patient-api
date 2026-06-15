@@ -30,13 +30,29 @@ public static class Seeder
             RecordedAt = DateTime.UtcNow.AddMonths(-6)
         });
 
-        db.DataConsents.Add(new DataConsent
-        {
-            Id = Guid.Parse("00000000-0000-0000-0004-000000000001"),
-            PatientId = Pat1,
-            OrganizationId = "hospital-1",
-            GrantedAt = DateTime.UtcNow.AddMonths(-1)
-        });
+        db.DataConsents.AddRange(
+            new DataConsent
+            {
+                Id = Guid.Parse("00000000-0000-0000-0004-000000000001"),
+                PatientId = Pat1,
+                OrganizationId = "hospital-1",
+                GrantedAt = DateTime.UtcNow.AddMonths(-1)
+            },
+            new DataConsent
+            {
+                Id = Guid.Parse("00000000-0000-0000-0004-000000000002"),
+                PatientId = Pat1,
+                OrganizationId = "lab-1",
+                GrantedAt = DateTime.UtcNow.AddMonths(-1)
+            },
+            new DataConsent
+            {
+                Id = Guid.Parse("00000000-0000-0000-0004-000000000003"),
+                PatientId = Pat1,
+                OrganizationId = "pharmacy-1",
+                GrantedAt = DateTime.UtcNow.AddMonths(-1)
+            }
+        );
 
         db.SaveChanges();
     }
