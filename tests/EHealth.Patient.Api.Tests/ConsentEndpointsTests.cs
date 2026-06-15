@@ -24,8 +24,10 @@ public class ConsentEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var consents = await response.Content.ReadFromJsonAsync<List<DataConsent>>();
         Assert.NotNull(consents);
-        Assert.Single(consents);
-        Assert.Equal("hospital-1", consents[0].OrganizationId);
+        Assert.Equal(3, consents.Count);
+        Assert.Contains(consents, c => c.OrganizationId == "hospital-1");
+        Assert.Contains(consents, c => c.OrganizationId == "lab-1");
+        Assert.Contains(consents, c => c.OrganizationId == "pharmacy-1");
     }
 
     [Fact]
