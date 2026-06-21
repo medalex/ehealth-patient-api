@@ -15,7 +15,7 @@ public static class ConsentEndpoints
                 .Where(c => c.PatientId == patientId)
                 .ToListAsync());
 
-        // Проверка наличия активного consent'а: 200 OK / 403 Forbidden
+        // Check for an active consent record: 200 OK / 403 Forbidden
         group.MapGet("/check", async (Guid patientId, string organizationId, AppDbContext db) =>
         {
             var now = DateTime.UtcNow;
