@@ -54,10 +54,16 @@ public static class ConsentEndpoints
             return Results.Created($"/api/consents/{consent.Id}", consent);
         });
 
-        group.MapDelete("/{id:guid}", async (Guid id, AppDbContext db) =>
+        group.MapDelete("/{id:guid}", async (Guid id, AppDbContext db,
+            IHttpClientFactory http, IConfiguration config) =>
         {
             var consent = await db.DataConsents.FindAsync(id);
             if (consent is null) return Results.NotFound();
+
+            // Anchor a revocation tombstone in DKG (assets are immutable — cannot be
+            // deleted). The physician-access gate then excludes this consent.
+            await EHealth.PatientApi.Dkg.ConsentDkg.RevokeAsync(id, http, config);
+
             db.DataConsents.Remove(consent);
             await db.SaveChangesAsync();
             return Results.NoContent();
