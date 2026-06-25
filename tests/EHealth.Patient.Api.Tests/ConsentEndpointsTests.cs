@@ -17,17 +17,15 @@ public class ConsentEndpointsTests : IDisposable
     }
 
     [Fact]
-    public async Task GetConsents_ReturnsSeededConsent()
+    public async Task GetConsents_NoneSeeded_ReturnsEmpty()
     {
+        // No consents are seeded — the patient starts having granted none.
         var response = await _client.GetAsync($"/api/consents/patient/{PatientId}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var consents = await response.Content.ReadFromJsonAsync<List<DataConsent>>();
         Assert.NotNull(consents);
-        Assert.Equal(3, consents.Count);
-        Assert.Contains(consents, c => c.OrganizationId == "hospital-1");
-        Assert.Contains(consents, c => c.OrganizationId == "lab-1");
-        Assert.Contains(consents, c => c.OrganizationId == "pharmacy-1");
+        Assert.Empty(consents);
     }
 
     [Fact]
@@ -60,11 +58,12 @@ public class ConsentEndpointsTests : IDisposable
     [Fact]
     public async Task DeleteConsent_KnownId_ReturnsNoContent()
     {
-        var consents = await _client.GetFromJsonAsync<List<DataConsent>>(
-            $"/api/consents/patient/{PatientId}");
-        var id = consents![0].Id;
+        // Grant a consent first (none are seeded), then delete it.
+        var created = await (await _client.PostAsJsonAsync("/api/consents",
+            new DataConsent { PatientId = PatientId, OrganizationId = "hospital-1" }))
+            .Content.ReadFromJsonAsync<DataConsent>();
 
-        var response = await _client.DeleteAsync($"/api/consents/{id}");
+        var response = await _client.DeleteAsync($"/api/consents/{created!.Id}");
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }

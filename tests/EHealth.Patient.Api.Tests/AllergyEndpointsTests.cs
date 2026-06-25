@@ -41,6 +41,10 @@ public class AllergyEndpointsTests : IDisposable
     [Fact]
     public async Task GetAllergies_WithValidConsent_ReturnsAllergies()
     {
+        // Patient grants consent to hospital-1 first (no consents are seeded).
+        await _client.PostAsJsonAsync("/api/consents",
+            new DataConsent { PatientId = PatientId, OrganizationId = "hospital-1" });
+
         var response = await _client.GetAsync(
             $"/api/allergies/patient/{PatientId}?orgId=hospital-1");
 

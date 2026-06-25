@@ -31,29 +31,10 @@ public static class Seeder
             RecordedAt = DateTime.UtcNow.AddMonths(-6)
         });
 
-        db.DataConsents.AddRange(
-            new DataConsent
-            {
-                Id = Guid.Parse("00000000-0000-0000-0004-000000000001"),
-                PatientId = Pat1,
-                OrganizationId = "hospital-1",
-                GrantedAt = DateTime.UtcNow.AddMonths(-1)
-            },
-            new DataConsent
-            {
-                Id = Guid.Parse("00000000-0000-0000-0004-000000000002"),
-                PatientId = Pat1,
-                OrganizationId = "lab-1",
-                GrantedAt = DateTime.UtcNow.AddMonths(-1)
-            },
-            new DataConsent
-            {
-                Id = Guid.Parse("00000000-0000-0000-0004-000000000003"),
-                PatientId = Pat1,
-                OrganizationId = "pharmacy-1",
-                GrantedAt = DateTime.UtcNow.AddMonths(-1)
-            }
-        );
+        // No data-sharing consents are seeded: the demo starts with the patient
+        // having granted NO consent. The patient grants consent via the portal
+        // (which anchors it in DKG), so the flow can show access denied first,
+        // then granted → prescription succeeds.
 
         db.SaveChanges();
         return true;
