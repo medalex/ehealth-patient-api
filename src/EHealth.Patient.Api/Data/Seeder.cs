@@ -6,9 +6,10 @@ public static class Seeder
 {
     private static readonly Guid Pat1 = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-    public static void Seed(AppDbContext db)
+    // Returns true if the database was seeded (false if it was already populated).
+    public static bool Seed(AppDbContext db)
     {
-        if (db.Patients.Any()) return;
+        if (db.Patients.Any()) return false;
 
         db.Patients.Add(new Patient
         {
@@ -55,5 +56,6 @@ public static class Seeder
         );
 
         db.SaveChanges();
+        return true;
     }
 }

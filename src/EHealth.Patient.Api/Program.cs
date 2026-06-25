@@ -22,7 +22,23 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
-    Seeder.Seed(db);
+
+    // On a fresh seed, anchor the seeded consents in DKG so the MFSSIA
+    // physician-access gate (C-DOC-AUTHZ) can resolve them via SPARQL.
+    if (Seeder.Seed(db))
+    {
+        var http = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+        var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        foreach (var consent in db.DataConsents.ToList())
+        {
+            var ual = await EHealth.PatientApi.Dkg.ConsentDkg.PublishAsync(consent, http, config);
+            if (ual is not null)
+            {
+                consent.DkgUal = ual;
+            }
+        }
+        await db.SaveChangesAsync();
+    }
 }
 
 app.UseCors();

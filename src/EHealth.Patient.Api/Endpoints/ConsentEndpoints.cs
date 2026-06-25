@@ -44,7 +44,7 @@ public static class ConsentEndpoints
             await db.SaveChangesAsync();
 
             // Anchor the DataSharingConsent commitment in DKG (rx:consentCovers organization)
-            var ual = await PublishToDkg(consent, http, config);
+            var ual = await EHealth.PatientApi.Dkg.ConsentDkg.PublishAsync(consent, http, config);
             if (ual is not null)
             {
                 consent.DkgUal = ual;
@@ -63,43 +63,4 @@ public static class ConsentEndpoints
             return Results.NoContent();
         });
     }
-
-    // Anchors a DataSharingConsent Turtle commitment in DKG via mfssia-ehealth.
-    // Predicates match the C-DOC-AUTHZ oracle SPARQL: rx:patient, rx:consentCovers, rx:validUntil.
-    private static async Task<string?> PublishToDkg(
-        DataConsent consent, IHttpClientFactory http, IConfiguration config)
-    {
-        try
-        {
-            var mfssiaUrl = config["MfssiaUrl"] ?? "http://mfssia-ehealth:4000/api";
-            var client = http.CreateClient();
-
-            // Never-expiring consent is anchored with a far-future validUntil so the
-            // oracle FILTER(?t > NOW()) still matches.
-            var validUntil = consent.ExpiresAt ?? DateTime.UtcNow.AddYears(100);
-
-            var turtle = $"""
-                @prefix rx: <https://mfssia.io/ontology/prescription#> .
-                @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-                <urn:consent:{consent.Id}> a rx:DataSharingConsent ;
-                    rx:patient "{consent.PatientId}" ;
-                    rx:consentCovers "{consent.OrganizationId}" ;
-                    rx:grantedAt "{consent.GrantedAt:O}"^^xsd:dateTime ;
-                    rx:validUntil "{validUntil:O}"^^xsd:dateTime .
-                """;
-
-            var response = await client.PostAsync(
-                $"{mfssiaUrl}/rdf",
-                new StringContent(turtle, System.Text.Encoding.UTF8, "text/turtle"));
-
-            if (!response.IsSuccessStatusCode) return null;
-            var json = await response.Content.ReadFromJsonAsync<DkgResponse>();
-            return json?.Data?.UAL ?? json?.UAL;
-        }
-        catch { return null; }
-    }
-
-    private record DkgData(string? UAL);
-    private record DkgResponse(string? UAL, DkgData? Data);
 }
