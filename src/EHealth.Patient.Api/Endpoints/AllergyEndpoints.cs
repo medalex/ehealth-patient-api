@@ -69,21 +69,26 @@ public static class AllergyEndpoints
             var mfssiaUrl = config["MfssiaUrl"] ?? "http://mfssia-ehealth:4000/api";
             var client = http.CreateClient();
 
-            // JSON-LD so the allergy is queryable in the DKG graph (raw Turtle is not parsed).
+            // JSON-LD aligned to the rx: ontology TBox (rx:Allergy: hasPatient/hasSubstance
+            // as IRIs, snomedCode literal, hasSource/hasTimestamp).
+            var sourceSlug = allergy.Source.Trim().Replace(" ", "-").ToLowerInvariant();
             var response = await client.PostAsJsonAsync($"{mfssiaUrl}/rdf/jsonld", new
             {
                 id = $"urn:patient:allergy:{allergy.Id}",
                 type = "Allergy",
+                iris = new Dictionary<string, string>
+                {
+                    ["hasPatient"] = $"urn:patient:{allergy.PatientId}",
+                    ["hasSubstance"] = $"rx:{allergy.Substance}",
+                    ["hasSource"] = $"urn:org:{sourceSlug}",
+                },
                 literals = new Dictionary<string, string>
                 {
-                    ["patientId"] = allergy.PatientId.ToString(),
-                    ["substance"] = allergy.Substance,
                     ["snomedCode"] = allergy.SnomedCode,
-                    ["source"] = allergy.Source,
                 },
                 dateTimes = new Dictionary<string, string>
                 {
-                    ["recordedAt"] = allergy.RecordedAt.ToUniversalTime().ToString("O"),
+                    ["hasTimestamp"] = allergy.RecordedAt.ToUniversalTime().ToString("O"),
                 },
             });
 
