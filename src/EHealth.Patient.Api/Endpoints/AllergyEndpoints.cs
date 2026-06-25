@@ -69,28 +69,31 @@ public static class AllergyEndpoints
             var mfssiaUrl = config["MfssiaUrl"] ?? "http://mfssia-ehealth:4000/api";
             var client = http.CreateClient();
 
-            var turtle = $"""
-                @prefix rx: <https://mfssia.io/ontology/prescription#> .
-                @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-                <urn:patient:allergy:{allergy.Id}> a rx:Allergy ;
-                    rx:patientId "{allergy.PatientId}" ;
-                    rx:substance "{allergy.Substance}" ;
-                    rx:snomedCode "{allergy.SnomedCode}" ;
-                    rx:source "{allergy.Source}" ;
-                    rx:recordedAt "{allergy.RecordedAt:O}"^^xsd:dateTime .
-                """;
-
-            var response = await client.PostAsync(
-                $"{mfssiaUrl}/rdf",
-                new StringContent(turtle, System.Text.Encoding.UTF8, "text/turtle"));
+            // JSON-LD so the allergy is queryable in the DKG graph (raw Turtle is not parsed).
+            var response = await client.PostAsJsonAsync($"{mfssiaUrl}/rdf/jsonld", new
+            {
+                id = $"urn:patient:allergy:{allergy.Id}",
+                type = "Allergy",
+                literals = new Dictionary<string, string>
+                {
+                    ["patientId"] = allergy.PatientId.ToString(),
+                    ["substance"] = allergy.Substance,
+                    ["snomedCode"] = allergy.SnomedCode,
+                    ["source"] = allergy.Source,
+                },
+                dateTimes = new Dictionary<string, string>
+                {
+                    ["recordedAt"] = allergy.RecordedAt.ToUniversalTime().ToString("O"),
+                },
+            });
 
             if (!response.IsSuccessStatusCode) return null;
             var json = await response.Content.ReadFromJsonAsync<DkgResponse>();
-            return json?.UAL;
+            return json?.Data?.UAL ?? json?.UAL;
         }
         catch { return null; }
     }
 
-    private record DkgResponse(string UAL);
+    private record DkgData(string? UAL);
+    private record DkgResponse(string? UAL, DkgData? Data);
 }
