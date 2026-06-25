@@ -4,8 +4,10 @@ using EHealth.PatientApi.Models;
 namespace EHealth.PatientApi.Dkg;
 
 // Anchors DataSharingConsent commitments in DKG via mfssia-ehealth.
-// Predicates (rx:patient, rx:consentCovers, rx:validUntil) match the
-// C-DOC-AUTHZ oracle SPARQL so physician access checks can resolve consent.
+// Uses the JSON-LD consent endpoints (not raw Turtle /rdf): the DKG node stores
+// raw Turtle but does NOT parse it into queryable triples, so the C-DOC-AUTHZ
+// gate SPARQL would never find a Turtle-published consent. JSON-LD via createAsset
+// produces proper triples (rx:patient, rx:consentCovers, rx:validUntil).
 public static class ConsentDkg
 {
     public static async Task<string?> PublishAsync(
@@ -17,23 +19,17 @@ public static class ConsentDkg
             var client = http.CreateClient();
 
             // Never-expiring consent is anchored with a far-future validUntil so the
-            // oracle FILTER(?t > NOW()) still matches.
+            // gate FILTER(?t > NOW()) still matches.
             var validUntil = consent.ExpiresAt ?? DateTime.UtcNow.AddYears(100);
 
-            var turtle = $"""
-                @prefix rx: <https://mfssia.io/ontology/prescription#> .
-                @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-                <urn:consent:{consent.Id}> a rx:DataSharingConsent ;
-                    rx:patient "{consent.PatientId}" ;
-                    rx:consentCovers "{consent.OrganizationId}" ;
-                    rx:grantedAt "{consent.GrantedAt:O}"^^xsd:dateTime ;
-                    rx:validUntil "{validUntil:O}"^^xsd:dateTime .
-                """;
-
-            var response = await client.PostAsync(
-                $"{mfssiaUrl}/rdf",
-                new StringContent(turtle, System.Text.Encoding.UTF8, "text/turtle"));
+            var response = await client.PostAsJsonAsync($"{mfssiaUrl}/consents/publish", new
+            {
+                consentId = consent.Id.ToString(),
+                patientId = consent.PatientId.ToString(),
+                organizationId = consent.OrganizationId,
+                grantedAt = consent.GrantedAt.ToUniversalTime().ToString("O"),
+                validUntil = validUntil.ToUniversalTime().ToString("O"),
+            });
 
             if (!response.IsSuccessStatusCode) return null;
             var json = await response.Content.ReadFromJsonAsync<DkgResponse>();
@@ -53,18 +49,10 @@ public static class ConsentDkg
             var mfssiaUrl = config["MfssiaUrl"] ?? "http://mfssia-ehealth:4000/api";
             var client = http.CreateClient();
 
-            var turtle = $"""
-                @prefix rx: <https://mfssia.io/ontology/prescription#> .
-                @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-                <urn:consent-revocation:{consentId}> a rx:ConsentRevocation ;
-                    rx:revokes <urn:consent:{consentId}> ;
-                    rx:revokedAt "{DateTime.UtcNow:O}"^^xsd:dateTime .
-                """;
-
-            var response = await client.PostAsync(
-                $"{mfssiaUrl}/rdf",
-                new StringContent(turtle, System.Text.Encoding.UTF8, "text/turtle"));
+            var response = await client.PostAsJsonAsync($"{mfssiaUrl}/consents/revoke", new
+            {
+                consentId = consentId.ToString(),
+            });
 
             if (!response.IsSuccessStatusCode) return null;
             var json = await response.Content.ReadFromJsonAsync<DkgResponse>();
