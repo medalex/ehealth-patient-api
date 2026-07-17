@@ -21,20 +21,9 @@ public static class Seeder
             Email = "emily.carter@example.com"
         });
 
-        db.AllergyRecords.Add(new AllergyRecord
-        {
-            Id = Guid.Parse("00000000-0000-0000-0003-000000000002"),
-            PatientId = Pat1,
-            Substance = "Penicillin",
-            SnomedCode = "372687004",
-            Source = "Patient PHR",
-            RecordedAt = DateTime.UtcNow.AddMonths(-6)
-        });
-
-        // No data-sharing consents are seeded: the demo starts with the patient
-        // having granted NO consent. The patient grants consent via the portal
-        // (which anchors it in DKG), so the flow can show access denied first,
-        // then granted → prescription succeeds.
+        // Minimal seed: only the patient. Allergies, consents and lab results are
+        // added live during the demo (each anchored in DKG at that point), so the
+        // full data → DKG → ZKP flow is shown rather than pre-seeded.
 
         db.SaveChanges();
         return true;
