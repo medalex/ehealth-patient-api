@@ -62,11 +62,13 @@ public static class AllergyEndpoints
     }
 
     private static async Task<string?> PublishToDkg(
-        AllergyRecord allergy, IHttpClientFactory http, IConfiguration config)
+        AllergyRecord allergy, 
+        IHttpClientFactory http, 
+        IConfiguration config)
     {
         try
         {
-            var mfssiaUrl = config["MfssiaUrl"] ?? "http://mfssia-ehealth:4000/api";
+            var mfssiaUrl = Mfssia.BaseUrl(config);
             var client = http.CreateClient();
 
             // JSON-LD aligned to the rx: ontology TBox (rx:Allergy: hasPatient/hasSubstance
