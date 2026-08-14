@@ -1,4 +1,5 @@
 using EHealth.PatientApi.Data;
+using EHealth.PatientApi.Dkg;
 using EHealth.PatientApi.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -54,7 +55,7 @@ public static class ConsentEndpoints
             await db.SaveChangesAsync();
 
             // Anchor the DataSharingConsent commitment in DKG (rx:consentCovers organization)
-            var ual = await EHealth.PatientApi.Dkg.ConsentDkg.PublishAsync(consent, http, config);
+            var ual = await ConsentDkg.PublishAsync(consent, http, config);
             
             if (ual is not null)
             {
@@ -79,7 +80,7 @@ public static class ConsentEndpoints
 
             // Anchor a revocation tombstone in DKG (assets are immutable — cannot be
             // deleted). The physician-access gate then excludes this consent.
-            await EHealth.PatientApi.Dkg.ConsentDkg.RevokeAsync(id, http, config);
+            await ConsentDkg.RevokeAsync(id, http, config);
 
             db.DataConsents.Remove(consent);
 

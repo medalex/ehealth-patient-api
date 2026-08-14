@@ -1,4 +1,5 @@
 using EHealth.PatientApi.Data;
+using EHealth.PatientApi.Dkg;
 using EHealth.PatientApi.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,7 +42,9 @@ public static class AllergyEndpoints
             db.AllergyRecords.Add(allergy);
             await db.SaveChangesAsync();
 
-            var ual = await PublishToDkg(allergy, http, config);
+            // Anchor the allergy in DKG (rx:Allergy) so MFSSIA can resolve it via SPARQL —
+            // same publisher the seeding path in Program.cs uses.
+            var ual = await AllergyDkg.PublishAsync(allergy, http, config);
             if (ual is not null)
             {
                 allergy.DkgUal = ual;
@@ -60,47 +63,4 @@ public static class AllergyEndpoints
             return Results.NoContent();
         });
     }
-
-    private static async Task<string?> PublishToDkg(
-        AllergyRecord allergy, 
-        IHttpClientFactory http, 
-        IConfiguration config)
-    {
-        try
-        {
-            var mfssiaUrl = Mfssia.BaseUrl(config);
-            var client = http.CreateClient();
-
-            // JSON-LD aligned to the rx: ontology TBox (rx:Allergy: hasPatient/hasSubstance
-            // as IRIs, snomedCode literal, hasSource/hasTimestamp).
-            var sourceSlug = allergy.Source.Trim().Replace(" ", "-").ToLowerInvariant();
-            var response = await client.PostAsJsonAsync($"{mfssiaUrl}/rdf/jsonld", new
-            {
-                id = $"urn:patient:allergy:{allergy.Id}",
-                type = "Allergy",
-                iris = new Dictionary<string, string>
-                {
-                    ["hasPatient"] = $"urn:patient:{allergy.PatientId}",
-                    ["hasSubstance"] = $"rx:{allergy.Substance}",
-                    ["hasSource"] = $"urn:org:{sourceSlug}",
-                },
-                literals = new Dictionary<string, string>
-                {
-                    ["snomedCode"] = allergy.SnomedCode,
-                },
-                dateTimes = new Dictionary<string, string>
-                {
-                    ["hasTimestamp"] = allergy.RecordedAt.ToUniversalTime().ToString("O"),
-                },
-            });
-
-            if (!response.IsSuccessStatusCode) return null;
-            var json = await response.Content.ReadFromJsonAsync<DkgResponse>();
-            return json?.Data?.UAL ?? json?.UAL;
-        }
-        catch { return null; }
-    }
-
-    private record DkgData(string? UAL);
-    private record DkgResponse(string? UAL, DkgData? Data);
 }

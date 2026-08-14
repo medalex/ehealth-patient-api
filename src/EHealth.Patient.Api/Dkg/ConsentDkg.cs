@@ -79,7 +79,4 @@ public static class ConsentDkg
             return null; 
         }
     }
-
-    private record DkgData(string? UAL);
-    private record DkgResponse(string? UAL, DkgData? Data);
 }
